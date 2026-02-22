@@ -27,8 +27,7 @@ else:
 	from urllib.request import HTTPCookieProcessor, Request, urlopen, build_opener
 
 firstDay, lastDay, startDay = datetime(2026, 7, 25), datetime(2026, 8, 5), datetime(2026, 7, 30)
-# TODO: Update eventId and ownerId when Gencon 2026 housing opens (currently using 2025 values as placeholders)
-eventId = 50910675
+eventId = 51118112
 ownerId = 10909638
 
 distanceUnits = {

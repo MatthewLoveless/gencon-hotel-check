@@ -33,6 +33,7 @@ jobs:
             --url "${{ secrets.PASSKEY_URL }}" \
             --checkin 2026-07-29 \
             --checkout 2026-08-02 \
+            --guests 2 \
             --once \
             --state-file .hotel-state.json \
             --email smtp.gmail.com "${{ secrets.GMAIL_USER }}" "${{ secrets.EMAIL_TO }}" \
