@@ -16,17 +16,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Restore alert state
-        uses: actions/cache@v4
-        with:
-          path: .hotel-state.json
-          key: hotel-state-${{ github.run_id }}
-          restore-keys: |
-            hotel-state-
-
-      - name: Initialize state file if missing
-        run: '[ -f .hotel-state.json ] || echo "[]" > .hotel-state.json'
-
       - name: Check hotel availability
         run: |
           python gencon-hotel-check.py \
@@ -35,7 +24,7 @@ jobs:
             --checkout 2026-08-02 \
             --guests 2 \
             --once \
-            --state-file .hotel-state.json \
+            --show-all \
             --email smtp.gmail.com "${{ secrets.GMAIL_USER }}" "${{ secrets.EMAIL_TO }}" \
             --email-password "${{ secrets.GMAIL_APP_PASSWORD }}"
         continue-on-error: true
