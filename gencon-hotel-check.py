@@ -26,7 +26,8 @@ else:
 	from urllib.parse import urlencode, urlparse
 	from urllib.request import HTTPCookieProcessor, Request, urlopen, build_opener
 
-firstDay, lastDay, startDay = datetime(2025, 7, 26), datetime(2025, 8, 6), datetime(2025, 7, 31)
+firstDay, lastDay, startDay = datetime(2026, 7, 25), datetime(2026, 8, 5), datetime(2026, 7, 30)
+# TODO: Update eventId and ownerId when Gencon 2026 housing opens (currently using 2025 values as placeholders)
 eventId = 50910675
 ownerId = 10909638
 
@@ -149,6 +150,8 @@ group.add_argument('--cmd', dest = 'alerts', action = 'append', type = lambda ar
 group.add_argument('--browser', dest = 'alerts', action = 'append_const', const = ('browser',), help = 'open the Passkey website in the default browser')
 group.add_argument('--email', dest = 'alerts', action = EmailAction, nargs = 3, metavar = ('HOST', 'FROM', 'TO'), help = 'send an e-mail')
 group.add_argument('--pushbullet', dest = 'alerts', action = 'append', type = lambda arg: ('pushbullet', arg), metavar = 'ACCESS_TOKEN', help = 'send a Pushbullet notification')
+group.add_argument('--email-password', metavar = 'PASSWORD', dest = 'email_password', default = None, help = 'password for SMTP email authentication, skipping the interactive prompt (also reads from EMAIL_PASSWORD env var)')
+group.add_argument('--state-file', metavar = 'PATH', dest = 'state_file', default = None, help = 'file to persist alert state between runs, preventing duplicate alerts when using --once with scheduled automation')
 
 args = parser.parse_args()
 
@@ -199,15 +202,22 @@ for alert in args.alerts or []:
 		alertFns.append(lambda preamble, hotels: webbrowser.open(baseUrl + '/home'))
 	elif alert[0] == 'email':
 		from email.mime.text import MIMEText
-		import getpass, smtplib, socket
+		import os, smtplib, socket
 		_, host, fromEmail, toEmail = alert
-		password = getpass.getpass("Enter password for %s (or blank if %s requires no authentication): " % (fromEmail, host))
-		def closure(host, fromEmail, toEmail):
+		if args.email_password:
+			password = args.email_password
+		elif os.environ.get('EMAIL_PASSWORD'):
+			password = os.environ['EMAIL_PASSWORD']
+		else:
+			import getpass
+			password = getpass.getpass("Enter password for %s (or blank if %s requires no authentication): " % (fromEmail, host))
+		def closure(host, fromEmail, toEmail, password):
 			def smtpConnect():
 				try:
-					smtp = smtplib.SMTP_SSL(host)
-				except socket.error:
-					smtp = smtplib.SMTP(host)
+					smtp = smtplib.SMTP_SSL(host, 465)
+				except (socket.error, SSLError):
+					smtp = smtplib.SMTP(host, 587)
+					smtp.starttls()
 				if password:
 					smtp.login(fromEmail, password)
 				return smtp
@@ -224,7 +234,7 @@ for alert in args.alerts or []:
 			except Exception as e:
 				print(e)
 				return False
-		if not closure(host, fromEmail, toEmail):
+		if not closure(host, fromEmail, toEmail, password):
 			success = False
 	elif alert[0] == 'pushbullet':
 		_, accessToken = alert
@@ -262,6 +272,12 @@ if args.test:
 	exit(0)
 
 lastAlerts = set()
+if args.state_file:
+	try:
+		with open(args.state_file) as f:
+			lastAlerts = {tuple(x) for x in fromJS(f.read())}
+	except (IOError, OSError, ValueError):
+		pass
 cookieJar = CookieJar()
 opener = build_opener(HTTPCookieProcessor(cookieJar))
 
@@ -351,6 +367,12 @@ def parseResults():
 
 	print()
 	lastAlerts = alertHash
+	if args.state_file:
+		try:
+			with open(args.state_file, 'w') as f:
+				f.write(toJS([list(x) for x in lastAlerts]))
+		except (IOError, OSError) as e:
+			print("Warning: could not save state file: %s" % e)
 	return True
 
 while True:

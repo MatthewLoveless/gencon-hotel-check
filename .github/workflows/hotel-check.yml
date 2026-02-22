@@ -1,0 +1,40 @@
+name: Gencon 2026 Hotel Check
+
+on:
+  schedule:
+    # Run every 5 minutes (GitHub Actions minimum interval)
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Restore alert state
+        uses: actions/cache@v4
+        with:
+          path: .hotel-state.json
+          key: hotel-state-${{ github.run_id }}
+          restore-keys: |
+            hotel-state-
+
+      - name: Initialize state file if missing
+        run: '[ -f .hotel-state.json ] || echo "[]" > .hotel-state.json'
+
+      - name: Check hotel availability
+        run: |
+          python gencon-hotel-check.py \
+            --url "${{ secrets.PASSKEY_URL }}" \
+            --checkin 2026-07-29 \
+            --checkout 2026-08-02 \
+            --once \
+            --state-file .hotel-state.json \
+            --email smtp.gmail.com "${{ secrets.GMAIL_USER }}" "${{ secrets.EMAIL_TO }}" \
+            --email-password "${{ secrets.GMAIL_APP_PASSWORD }}"
+        continue-on-error: true
