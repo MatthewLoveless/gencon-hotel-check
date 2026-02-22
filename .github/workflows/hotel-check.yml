@@ -20,7 +20,7 @@ jobs:
         run: |
           python gencon-hotel-check.py \
             --url "${{ secrets.PASSKEY_URL }}" \
-            --checkin 2026-07-29 \
+            --checkin 2026-07-30 \
             --checkout 2026-08-02 \
             --guests 2 \
             --once \
