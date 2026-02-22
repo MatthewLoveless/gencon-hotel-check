@@ -337,8 +337,7 @@ def parseResults():
 				continue
 			result = "%-15s $%-9s %-80s (%d) %s" % (simpleHotel['distance'], simpleHotel['price'], simpleHotel['name'], simpleHotel['rooms'], simpleHotel['room'])
 			# I don't think these distances (yards, meters, kilometers) actually appear in the results, but if they do assume it must be close enough regardless of --max-distance
-			closeEnough = args.show_all or \
-			              hotel['distanceUnit'] in (2, 4, 5) or \
+			closeEnough = hotel['distanceUnit'] in (2, 4, 5) or \
 			              (hotel['distanceUnit'] == 1 and (args.max_distance is None or (isinstance(args.max_distance, float) and hotel['distanceFromEvent'] <= args.max_distance))) or \
 			              (args.max_distance == 'connected' and connected)
 			cheapEnough = simpleHotel['price'] <= args.budget
